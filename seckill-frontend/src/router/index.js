@@ -1,4 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
+// 修正导入路径 - 添加 product/ 目录
+import ProductList from '@/views/product/ProductList.vue' // 普通商品列表
+import SeckillList from '@/views/product/SeckillList.vue'   // 限时秒杀列表
 
 const routes = [
   {
@@ -19,7 +22,13 @@ const routes = [
   {
     path: '/products',
     name: 'ProductList',
-    component: () => import('../views/product/ProductList.vue'),
+    component: ProductList,  // 直接使用导入的组件
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/seckill',
+    name: 'SeckillList',
+    component: SeckillList,  // 直接使用导入的组件
     meta: { requiresAuth: true }
   }
 ]

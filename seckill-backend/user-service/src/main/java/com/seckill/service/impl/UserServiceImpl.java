@@ -1,55 +1,120 @@
 package com.seckill.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import org.springframework.dao.DuplicateKeyException;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.seckill.entity.User;
 import com.seckill.mapper.UserMapper;
 import com.seckill.service.UserService;
+import com.seckill.dto.LoginDTO;
+import com.seckill.dto.RegisterDTO;
+import com.seckill.vo.LoginVO;
+import com.seckill.util.JwtUtil;
+import com.seckill.util.PasswordEncoder;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.util.DigestUtils;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.time.LocalDateTime;
 
+@Slf4j  // 添加这个注解
 @Service
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
 
-    @Override
-    public String register(User user) {
-        // 1. 校验用户名是否已存在
-        QueryWrapper<User> wrapper = new QueryWrapper<>();
-        wrapper.eq("username", user.getUsername());
-        if (this.count(wrapper) > 0) {
-            return "注册失败：用户名已被占用！";
+    @Autowired
+    private JwtUtil jwtUtil;
+    
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+   @Override
+    @Transactional(rollbackFor = Exception.class)
+    public LoginVO register(RegisterDTO registerDTO) {
+        log.info("用户注册: {}", registerDTO.getUsername());
+        
+        // 1. 校验（逻辑层拦截）
+        LambdaQueryWrapper<User> usernameWrapper = new LambdaQueryWrapper<>();
+        usernameWrapper.eq(User::getUsername, registerDTO.getUsername());
+        if (this.count(usernameWrapper) > 0) {
+            throw new RuntimeException("用户名已被占用");
+        }
+        
+        LambdaQueryWrapper<User> phoneWrapper = new LambdaQueryWrapper<>();
+        phoneWrapper.eq(User::getPhone, registerDTO.getPhone());
+        if (this.count(phoneWrapper) > 0) {
+            throw new RuntimeException("手机号已被注册");
         }
 
-        // 2. 密码 MD5 加密 (商业项目绝对不能明文存密码)
-        String md5Password = DigestUtils.md5DigestAsHex(user.getPassword().getBytes());
-        user.setPassword(md5Password);
+        // 2. 组装数据
+        User user = new User();
+        user.setUsername(registerDTO.getUsername());
+        user.setPassword(passwordEncoder.encode(registerDTO.getPassword()));
+        user.setPhone(registerDTO.getPhone());
+        user.setCreatedAt(LocalDateTime.now());
         
-        // 3. 设置创建时间并保存到阿里云数据库
-        user.setCreateTime(LocalDateTime.now());
-        this.save(user);
+        // 3. 保存入库（捕获数据库级别的唯一约束异常，双重保险）
+        try {
+            this.save(user);
+        } catch (DuplicateKeyException e) {
+            log.error("并发注册拦截，手机号冲突: {}", registerDTO.getPhone());
+            throw new RuntimeException("该手机号在极短时间内已被注册，请勿重复提交");
+        }
         
-        return "注册成功！欢迎您，" + user.getUsername();
+        // 4. 自动生成Token实现注册后免密直接登录
+        String token = jwtUtil.generateToken(user.getId(), user.getUsername());
+        
+        LoginVO loginVO = new LoginVO();
+        loginVO.setUserId(user.getId());
+        loginVO.setUsername(user.getUsername());
+        loginVO.setPhone(user.getPhone());
+        loginVO.setToken(token);
+        loginVO.setLoginTime(LocalDateTime.now());
+        
+        log.info("用户注册成功: {}", user.getId());
+        return loginVO;
     }
 
     @Override
-    public String login(String username, String password) {
-        // 1. 根据用户名查询用户
-        QueryWrapper<User> wrapper = new QueryWrapper<>();
-        wrapper.eq("username", username);
+    public LoginVO login(LoginDTO loginDTO) {
+        log.info("用户登录: {}", loginDTO.getAccount());
+        
+        // 1. 查询用户（支持用户名或手机号登录）
+        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(User::getUsername, loginDTO.getAccount())
+               .or()
+               .eq(User::getPhone, loginDTO.getAccount());
+        
         User user = this.getOne(wrapper);
-
+        
         if (user == null) {
-            return "登录失败：用户不存在！";
+            throw new RuntimeException("用户不存在");
         }
-
-        // 2. 校验密码 (将用户输入的密码MD5加密后，与数据库中的密文比对)
-        String md5Password = DigestUtils.md5DigestAsHex(password.getBytes());
-        if (!md5Password.equals(user.getPassword())) {
-            return "登录失败：密码错误！";
+        
+        // 2. 校验密码
+        if (!passwordEncoder.matches(loginDTO.getPassword(), user.getPassword())) {
+            throw new RuntimeException("密码错误");
         }
+        
+        // 3. 生成JWT令牌
+        String token = jwtUtil.generateToken(user.getId(), user.getUsername());
+        
+        // 4. 返回登录信息
+        LoginVO loginVO = new LoginVO();
+        loginVO.setUserId(user.getId());
+        loginVO.setUsername(user.getUsername());
+        loginVO.setPhone(user.getPhone());
+        loginVO.setToken(token);
+        loginVO.setLoginTime(LocalDateTime.now());
+        
+        log.info("用户登录成功: {}", user.getId());
+        return loginVO;
+    }
 
-        // TODO: 实际秒杀项目中，这里通常会生成并返回一个 JWT Token，后续请求带着 Token 访问。
-        return "登录成功！当前处理线程: " + Thread.currentThread().toString();
+    @Override
+    public User getUserByPhone(String phone) {
+        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(User::getPhone, phone);
+        return this.getOne(wrapper);
     }
 }

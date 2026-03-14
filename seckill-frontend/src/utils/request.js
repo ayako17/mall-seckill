@@ -1,20 +1,19 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 
-// 1. 创建 axios 实例
 const service = axios.create({
-  baseURL: '', // 因为我们在 vite.config.js 配置了代理，这里留空即可
-  timeout: 10000 // 请求超时时间 10 秒
+  baseURL: '',
+  timeout: 10000
 })
 
-// 2. 请求拦截器 (Request Interceptor)
+// 请求拦截器
 service.interceptors.request.use(
   config => {
-    // 【核心重点】如果后续实现了 Token，这里会自动把 Token 塞进请求头里，发给你的 Java 后端！
     const token = localStorage.getItem('seckill_token')
     if (token) {
       config.headers['Authorization'] = 'Bearer ' + token
     }
+    console.log('请求:', config.method.toUpperCase(), config.url, config.data)
     return config
   },
   error => {
@@ -22,15 +21,40 @@ service.interceptors.request.use(
   }
 )
 
-// 3. 响应拦截器 (Response Interceptor)
+// 响应拦截器
 service.interceptors.response.use(
   response => {
-    // 成功收到后端响应，直接剥离最外层 axios 包装，返回数据给页面
+    console.log('响应:', response.data)
     return response.data
   },
   error => {
-    // 全局统一的错误提示，比如后端挂了、500报错，都在这里弹窗提醒
-    ElMessage.error(error.message || '系统内部错误，请稍后再试！')
+    console.error('错误:', error.response || error)
+    
+    if (error.response) {
+      // 获取后端返回的错误信息
+      let errorMsg = '请求失败'
+      
+      if (typeof error.response.data === 'string') {
+        // 如果返回的是字符串
+        errorMsg = error.response.data
+      } else if (error.response.data && error.response.data.message) {
+        // 如果返回的是 { message: '...' }
+        errorMsg = error.response.data.message
+      } else if (error.response.data && error.response.data.error) {
+        // 如果返回的是 { error: '...' }
+        errorMsg = error.response.data.error
+      } else {
+        // 默认错误信息
+        errorMsg = `请求失败 (${error.response.status})`
+      }
+      
+      ElMessage.error(errorMsg)
+    } else if (error.message === 'Network Error') {
+      ElMessage.error('网络连接失败，请检查后端服务是否启动')
+    } else {
+      ElMessage.error(error.message || '系统内部错误，请稍后再试！')
+    }
+    
     return Promise.reject(error)
   }
 )

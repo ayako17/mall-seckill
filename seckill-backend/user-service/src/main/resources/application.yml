@@ -1,6 +1,9 @@
 server:
   port: 8080 # 用户服务运行在 8080 端口
-
+  error:
+    include-message: always
+    include-binding-errors: always
+    
 spring:
   application:
     name: user-service
@@ -16,3 +19,14 @@ spring:
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true # 开启驼峰命名转换
+
+# JWT配置
+# jwt:
+#   secret: seckillSecretKey2026  # JWT密钥
+#   expiration: 86400  # 过期时间（秒），24小时
+
+logging:
+  level:
+    com.seckill: DEBUG
+    org.springframework.jdbc: DEBUG
+    org.springframework.transaction: DEBUG
