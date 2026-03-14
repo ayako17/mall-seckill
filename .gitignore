@@ -1,0 +1,29 @@
+# IDE
+.vscode/
+.idea/
+*.iml
+*.class
+
+# Java
+target/
+*.log
+*.lock
+*.jar
+*.war
+*.ear
+
+# Maven
+log/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+# 操作系统
+.DS_Store
+Thumbs.db
