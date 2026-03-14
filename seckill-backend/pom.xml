@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?><project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>com.seckill</groupId>
+  <artifactId>mall-seckill</artifactId>
+  <version>1.0-SNAPSHOT</version>
+  <!-- 父工程打包方式必须是 pom -->
+  <packaging>pom</packaging>
+  <properties>
+    <java.version>21</java.version>
+    <maven.compiler.source>21</maven.compiler.source>
+    <maven.compiler.target>21</maven.compiler.target>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <spring-boot.version>3.2.4</spring-boot.version>
+    <spring-cloud.version>2023.0.1</spring-cloud.version>
+    <mybatis-plus.version>3.5.5</mybatis-plus.version>
+  </properties>
+  <!-- 依赖版本锁定 (不实际引入，子模块按需引入无需写版本号) -->
+  <dependencyManagement>
+    <dependencies>
+      <!-- Spring Boot 依赖包 -->
+      <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-dependencies</artifactId>
+        <version>${spring-boot.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <!-- Spring Cloud 依赖包 -->
+      <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-dependencies</artifactId>
+        <version>${spring-cloud.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <!-- MyBatis-Plus -->
+      <dependency>
+        <groupId>com.baomidou</groupId>
+        <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+        <version>${mybatis-plus.version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+  <!-- 在父工程的 pom.xml 中，</dependencyManagement> 后面添加 -->
+<build>
+    <pluginManagement>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>${spring-boot.version}</version>
+            </plugin>
+        </plugins>
+    </pluginManagement>
+</build>
+  <!-- 子模块列表 (后续我们会一个个创建) -->
+  <modules>
+    <module>seckill-common</module>
+    <module>product-service</module>
+    <module>order-service</module>
+    <module>user-service</module>
+    <module>inventory-service</module>
+  </modules>
+</project>
