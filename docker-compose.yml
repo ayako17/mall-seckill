@@ -1,0 +1,92 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: seckill-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - seckill-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  user-service-1:
+    build:
+      context: ./seckill-backend
+      dockerfile: user-service/Dockerfile
+    container_name: user-service-1
+    ports:
+      - "8081:8080"
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://rm-cn-swx4p26ot00019do.rwlb.rds.aliyuncs.com:3306/seckill_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false
+      SPRING_DATASOURCE_USERNAME: dms_user_9bc05ec  # 必须填写！
+      SPRING_DATASOURCE_PASSWORD: AYAKO0217sir@    # 必须填写！
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      JWT_SECRET: seckillSecretKey2026
+    networks:
+      - seckill-net
+
+  user-service-2:
+    build: 
+      context: ./seckill-backend
+      dockerfile: user-service/Dockerfile
+    container_name: user-service-2
+    ports:
+      - "8082:8080"
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://rm-cn-swx4p26ot00019do.rwlb.rds.aliyuncs.com:3306/seckill_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false
+      SPRING_DATASOURCE_USERNAME: dms_user_9bc05ec  # 必须填写！
+      SPRING_DATASOURCE_PASSWORD: AYAKO0217sir@    # 必须填写！
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      JWT_SECRET: seckillSecretKey2026
+    networks:
+      - seckill-net
+
+  product-service:
+    build: 
+      context: ./seckill-backend
+      dockerfile: product-service/Dockerfile
+    container_name: product-service
+    ports:
+      - "8083:8080"
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://rm-cn-swx4p26ot00019do.rwlb.rds.aliyuncs.com:3306/seckill_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false
+      SPRING_DATASOURCE_USERNAME: dms_user_9bc05ec  # 必须填写！
+      SPRING_DATASOURCE_PASSWORD: AYAKO0217sir@    # 必须填写！
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+    networks:
+      - seckill-net
+
+  nginx:
+    image: nginx:alpine
+    container_name: seckill-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - user-service-1
+      - user-service-2
+      - product-service
+    networks:
+      - seckill-net
+
+networks:
+  seckill-net:
+    driver: bridge

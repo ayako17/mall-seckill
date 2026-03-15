@@ -1,7 +1,12 @@
 // src/utils/ossHelper.js
 import OSS from 'ali-oss';
 
-
+const client = new OSS({
+  region: 'oss-cn-hangzhou',
+  accessKeyId: import.meta.env.VITE_OSS_ACCESS_KEY_ID,  // Vite 会自动加载 .env.local
+  accessKeySecret: import.meta.env.VITE_OSS_ACCESS_KEY_SECRET,
+  bucket: 'mall-seckill-oss'
+});
 
 /**
  * 生成可访问的图片URL（带签名）
