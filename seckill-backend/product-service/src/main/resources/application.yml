@@ -6,7 +6,7 @@ spring:
     name: product-service
   
   profiles:
-    active: dev  # 可根据环境切换
+    active: dev
   
   threads:
     virtual:
@@ -15,8 +15,8 @@ spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://rm-cn-swx4p26ot00019do.rwlb.rds.aliyuncs.com:3306/seckill_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false
-    username: dms_user_9bc05ec # 换成你的数据库用户名
-    password: AYAKO0217sir@ # 换成你的数据库密码
+    username: dms_user_9bc05ec
+    password: AYAKO0217sir@
     hikari:
       maximum-pool-size: 20
       minimum-idle: 5
@@ -24,18 +24,19 @@ spring:
       idle-timeout: 600000
       max-lifetime: 1800000
   
-  redis:
-    host: your-redis-host
-    port: 6379
-    password: your-redis-password
-    database: 0
-    timeout: 5000ms
-    lettuce:
-      pool:
-        max-active: 20
-        max-idle: 10
-        min-idle: 5
-        max-wait: 5000ms
+  data:
+    redis:
+      host: ${SPRING_REDIS_HOST:localhost}
+      port: ${SPRING_REDIS_PORT:6379}
+      password: ${SPRING_REDIS_PASSWORD:}
+      database: 0
+      timeout: 5000ms
+      lettuce:
+        pool:
+          max-active: 20
+          max-idle: 10
+          min-idle: 5
+          max-wait: 5000ms
   
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss

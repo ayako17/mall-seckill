@@ -5,9 +5,8 @@ import com.seckill.service.ProductService;
 import com.seckill.service.SeckillProductService;
 import com.seckill.vo.SeckillProductVO;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -21,17 +20,25 @@ public class ProductController {
     @Autowired
     private SeckillProductService seckillProductService;
 
-    // 1. 获取所有【普通商品】列表
+    // 1. 获取所有普通商品列表
     @GetMapping("/normal/list")
     public List<Product> listNormalProducts() {
-        // 这里后续可以加上条件：只查 status=1 (已上架) 的商品
         return productService.list();
     }
 
-    // 2. 获取【今日必抢/限时秒杀】商品列表 (前端对应的就是这个接口)
+    // 2. 获取秒杀商品列表
     @GetMapping("/seckill/list")
     public List<SeckillProductVO> listSeckillProducts() {
-        // 返回包含 商品名、原价、秒杀价等整合好的视图数据
         return seckillProductService.getActiveSeckillProducts();
+    }
+
+    // 3. 【新增】获取单个商品详情（带缓存）
+    @GetMapping("/{id}")
+    public ResponseEntity<Product> getProductById(@PathVariable Long id) {
+        Product product = productService.getProductById(id);
+        if (product == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(product);
     }
 }
