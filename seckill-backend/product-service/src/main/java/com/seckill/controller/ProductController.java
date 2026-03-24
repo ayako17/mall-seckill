@@ -1,5 +1,4 @@
 package com.seckill.controller;
-
 import com.seckill.entity.Product;
 import com.seckill.service.ProductService;
 import com.seckill.service.SeckillProductService;
