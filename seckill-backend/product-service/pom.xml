@@ -69,6 +69,12 @@
             <artifactId>fastjson</artifactId>
             <version>2.0.52</version>
         </dependency>
+        <!-- 布隆过滤器 -->
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>33.0.0-jre</version>
+        </dependency>
     </dependencies>
     <build>
         <plugins>

@@ -2,20 +2,16 @@ package com.seckill.service.impl;
 
 import com.alibaba.fastjson.JSON;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.google.common.hash.BloomFilter;
 import com.seckill.entity.Product;
 import com.seckill.mapper.ProductMapper;
 import com.seckill.service.ProductService;
-
 import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
 import java.util.Random;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -27,56 +23,96 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
 
     @Autowired
     private StringRedisTemplate redisTemplate;
+    
+    @Autowired
+    private BloomFilter<Long> bloomFilter;
 
     private static final String PRODUCT_CACHE_KEY_PREFIX = "product:detail:";
     private static final long CACHE_TTL = 3600; // 基础过期时间 1小时
     private static final long NULL_CACHE_TTL = 300; // 空值缓存过期时间 5分钟
     private static final String LOCK_KEY_PREFIX = "lock:product:";
+    
+    private final Random random = new Random();
 
     @Override
     public Product getProductById(Long id) {
         log.info("========== 查询商品详情开始，id: {} ==========", id);
         
+        // ========== 1. 布隆过滤器（防穿透）==========
+        if (!bloomFilter.mightContain(id)) {
+            log.info("布隆过滤器拦截非法ID: {}，商品不存在", id);
+            return null;
+        }
+        
+        String cacheKey = PRODUCT_CACHE_KEY_PREFIX + id;
+        String lockKey = LOCK_KEY_PREFIX + id;
+        
         try {
-            String cacheKey = PRODUCT_CACHE_KEY_PREFIX + id;
-            log.info("缓存key: {}", cacheKey);
-            
+            // ========== 2. 先查缓存 ==========
             String json = redisTemplate.opsForValue().get(cacheKey);
-            log.info("缓存结果: {}", json);
-
-            // 1. 缓存命中
+            
             if (json != null) {
                 log.info("缓存命中，key: {}", cacheKey);
                 if ("NULL".equals(json)) {
                     log.info("空值缓存，商品不存在");
                     return null;
                 }
-                try {
-                    Product p = JSON.parseObject(json, Product.class);
-                    log.info("缓存解析成功: {}", p);
-                    return p;
-                } catch (Exception e) {
-                    log.error("缓存JSON解析失败", e);
-                }
+                return JSON.parseObject(json, Product.class);
             }
-
-            // 2. 缓存未命中，查询数据库
-            log.info("缓存未命中，查询数据库，id: {}", id);
-            Product product = productMapper.selectById(id);
-            log.info("数据库查询结果: {}", product);
-
-            // 3. 回填缓存
-            if (product == null) {
-                log.info("商品不存在，缓存空值");
-                redisTemplate.opsForValue().set(cacheKey, "NULL", NULL_CACHE_TTL, TimeUnit.SECONDS);
-            } else {
-                log.info("商品存在，写入缓存");
-                String productJson = JSON.toJSONString(product);
-                redisTemplate.opsForValue().set(cacheKey, productJson, CACHE_TTL, TimeUnit.SECONDS);
-            }
-
-            return product;
             
+            // ========== 3. 缓存未命中，尝试获取分布式锁（防击穿）==========
+            log.info("缓存未命中，尝试获取锁，key: {}", lockKey);
+            String lockValue = String.valueOf(System.currentTimeMillis());
+            Boolean locked = redisTemplate.opsForValue()
+                .setIfAbsent(lockKey, lockValue, 10, TimeUnit.SECONDS);
+            
+            if (Boolean.TRUE.equals(locked)) {
+                try {
+                    // 双重检查：获取锁后再次检查缓存
+                    json = redisTemplate.opsForValue().get(cacheKey);
+                    if (json != null) {
+                        log.info("双重检查命中缓存");
+                        if ("NULL".equals(json)) {
+                            return null;
+                        }
+                        return JSON.parseObject(json, Product.class);
+                    }
+                    
+                    // ========== 4. 查询数据库 ==========
+                    log.info("获取锁成功，查询数据库，id: {}", id);
+                    Product product = productMapper.selectById(id);
+                    
+                    // ========== 5. 回写缓存（防雪崩：随机过期时间）==========
+                    if (product == null) {
+                        log.info("商品不存在，缓存空值");
+                        redisTemplate.opsForValue().set(cacheKey, "NULL", 
+                            NULL_CACHE_TTL, TimeUnit.SECONDS);
+                    } else {
+                        // 随机过期时间：1小时 + 0-5分钟随机，防止雪崩
+                        long expire = CACHE_TTL + random.nextInt(300);
+                        log.info("商品存在，写入缓存，过期时间: {}秒", expire);
+                        redisTemplate.opsForValue().set(cacheKey, 
+                            JSON.toJSONString(product), expire, TimeUnit.SECONDS);
+                    }
+                    
+                    return product;
+                    
+                } finally {
+                    // 释放锁
+                    redisTemplate.delete(lockKey);
+                    log.info("释放锁，key: {}", lockKey);
+                }
+            } else {
+                // 未获取到锁，等待后重试
+                log.info("未获取到锁，等待重试...");
+                Thread.sleep(50);
+                return getProductById(id);
+            }
+            
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("等待锁被中断", e);
+            return null;
         } catch (Exception e) {
             log.error("查询商品详情异常", e);
             throw e;
@@ -89,9 +125,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
      * 更新商品时删除缓存（保持数据一致性）
      */
     public boolean updateProduct(Product product) {
-        // 1. 先更新数据库
         int rows = productMapper.updateById(product);
-        // 2. 如果更新成功，删除缓存
         if (rows > 0 && product.getId() != null) {
             String cacheKey = PRODUCT_CACHE_KEY_PREFIX + product.getId();
             redisTemplate.delete(cacheKey);
@@ -104,9 +138,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
      * 删除商品时删除缓存
      */
     public boolean deleteProduct(Long id) {
-        // 1. 先删除数据库
         int rows = productMapper.deleteById(id);
-        // 2. 如果删除成功，删除缓存
         if (rows > 0) {
             String cacheKey = PRODUCT_CACHE_KEY_PREFIX + id;
             redisTemplate.delete(cacheKey);
