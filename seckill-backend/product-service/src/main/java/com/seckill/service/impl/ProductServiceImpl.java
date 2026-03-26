@@ -10,7 +10,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
@@ -35,6 +38,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     private final Random random = new Random();
 
     @Override
+    @Transactional(readOnly = true) 
     public Product getProductById(Long id) {
         log.info("========== 查询商品详情开始，id: {} ==========", id);
         
@@ -124,6 +128,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     /**
      * 更新商品时删除缓存（保持数据一致性）
      */
+    @Transactional
     public boolean updateProduct(Product product) {
         int rows = productMapper.updateById(product);
         if (rows > 0 && product.getId() != null) {
@@ -137,6 +142,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
     /**
      * 删除商品时删除缓存
      */
+    @Transactional
     public boolean deleteProduct(Long id) {
         int rows = productMapper.deleteById(id);
         if (rows > 0) {
@@ -146,4 +152,27 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         }
         return rows > 0;
     }
+
+    @Override
+    @Transactional
+    public void saveWithTransaction() {
+        // 事务内写入
+        Product product = new Product();
+        product.setId(System.currentTimeMillis());
+        product.setName("事务测试商品");
+        product.setPrice(new BigDecimal("88.88"));
+        product.setDescription("测试事务内读写分离");
+        product.setStatus(1);
+        this.save(product);
+        
+        // 事务内读取（应该在主库，因为事务上下文）
+        List<Product> products = this.list();
+        log.info("事务内查询到 {} 条记录", products.size());
+        
+        // 更新
+        product.setName("事务测试商品-已更新");
+        this.updateById(product);
+        
+        log.info("事务执行完成，所有操作应该在主库完成");
+    }   
 }

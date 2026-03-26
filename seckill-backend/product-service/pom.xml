@@ -75,22 +75,9 @@
             <artifactId>guava</artifactId>
             <version>33.0.0-jre</version>
         </dependency>
-        <!-- Sharding-JDBC 读写分离 -->
-        <dependency>
-            <groupId>org.apache.shardingsphere</groupId>
-            <artifactId>shardingsphere-jdbc-core</artifactId>
-            <version>5.4.1</version>
-        </dependency>
-        <!-- ElasticSearch-->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-elasticsearch</artifactId>
-        </dependency>
-        <!-- 添加 ES 客户端依赖 -->
-        <dependency>
-            <groupId>co.elastic.clients</groupId>
-            <artifactId>elasticsearch-java</artifactId>
-            <version>8.10.0</version>
+            <artifactId>spring-boot-starter-aop</artifactId>
         </dependency>
     </dependencies>
     <build>

@@ -95,9 +95,10 @@ services:
       SPRING_DATASOURCE_MASTER_USERNAME: root
       SPRING_DATASOURCE_MASTER_PASSWORD: root123456
       # 从库（读）
-      SPRING_DATASOURCE_SLAVE_URL: jdbc:mysql://mysql-slave:3307/seckill_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
-      SPRING_DATASOURCE_SLAVE_USERNAME: root
+      # ✅ Fix in user-service-1, user-service-2, and product-service:
+      SPRING_DATASOURCE_SLAVE_URL: jdbc:mysql://mysql-slave:3306/seckill_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_SLAVE_PASSWORD: root123456
+      SPRING_DATASOURCE_SLAVE_USERNAME: root
       SPRING_REDIS_HOST: redis
       SPRING_REDIS_PORT: 6379
       JWT_SECRET: seckillSecretKey2026
@@ -124,7 +125,8 @@ services:
       SPRING_DATASOURCE_MASTER_URL: jdbc:mysql://mysql-master:3306/seckill_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_MASTER_USERNAME: root
       SPRING_DATASOURCE_MASTER_PASSWORD: root123456
-      SPRING_DATASOURCE_SLAVE_URL: jdbc:mysql://mysql-slave:3307/seckill_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+      # ✅ Fix in user-service-1, user-service-2, and product-service:
+      SPRING_DATASOURCE_SLAVE_URL: jdbc:mysql://mysql-slave:3306/seckill_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_SLAVE_USERNAME: root
       SPRING_DATASOURCE_SLAVE_PASSWORD: root123456
       SPRING_REDIS_HOST: redis
@@ -153,7 +155,8 @@ services:
       SPRING_DATASOURCE_MASTER_URL: jdbc:mysql://mysql-master:3306/seckill_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_MASTER_USERNAME: root
       SPRING_DATASOURCE_MASTER_PASSWORD: root123456
-      SPRING_DATASOURCE_SLAVE_URL: jdbc:mysql://mysql-slave:3307/seckill_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+      # ✅ Fix in user-service-1, user-service-2, and product-service:
+      SPRING_DATASOURCE_SLAVE_URL: jdbc:mysql://mysql-slave:3306/seckill_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_SLAVE_USERNAME: root
       SPRING_DATASOURCE_SLAVE_PASSWORD: root123456
       SPRING_REDIS_HOST: redis

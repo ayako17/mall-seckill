@@ -4,31 +4,38 @@ server:
 spring:
   application:
     name: product-service
-  
-  profiles:
-    active: dev
-  
+
   threads:
     virtual:
       enabled: true
-  
+
   datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://rm-cn-swx4p26ot00019do.rwlb.rds.aliyuncs.com:3306/seckill_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false
-    username: dms_user_9bc05ec
-    password: AYAKO0217sir@
-    hikari:
-      maximum-pool-size: 20
-      minimum-idle: 5
-      connection-timeout: 30000
-      idle-timeout: 600000
-      max-lifetime: 1800000
-  
+    master:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      jdbc-url: jdbc:mysql://mysql-master:3306/seckill_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+      username: root
+      password: root123456
+      hikari:
+        maximum-pool-size: 10
+        minimum-idle: 5
+        connection-timeout: 30000
+    slave:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      # ✅ 端口 3306 — 在 Docker 网络内部，slave 容器始终使用 3306
+      jdbc-url: jdbc:mysql://mysql-slave:3306/seckill_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+      username: root
+      password: root123456
+      hikari:
+        maximum-pool-size: 20
+        minimum-idle: 10
+        connection-timeout: 30000
+        read-only: true
+
   data:
     redis:
-      host: ${SPRING_REDIS_HOST:localhost}
-      port: ${SPRING_REDIS_PORT:6379}
-      password: ${SPRING_REDIS_PASSWORD:}
+      host: redis
+      port: 6379
+      password:
       database: 0
       timeout: 5000ms
       lettuce:
@@ -37,15 +44,6 @@ spring:
           max-idle: 10
           min-idle: 5
           max-wait: 5000ms
-  
-  jackson:
-    date-format: yyyy-MM-dd HH:mm:ss
-    time-zone: GMT+8
-
-  elasticsearch:
-    uris: http://elasticsearch:9200
-    connection-timeout: 10s
-    socket-timeout: 30s
 
 mybatis-plus:
   configuration:
@@ -64,6 +62,6 @@ logging:
   level:
     com.seckill: DEBUG
     org.springframework.web: INFO
-    com.baomidou.mybatisplus: INFO
+    com.baomidou.mybatisplus: DEBUG
   pattern:
     console: '%d{yyyy-MM-dd HH:mm:ss} - %msg%n'
