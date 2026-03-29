@@ -21,7 +21,6 @@ spring:
         connection-timeout: 30000
     slave:
       driver-class-name: com.mysql.cj.jdbc.Driver
-      # ✅ 端口 3306 — 在 Docker 网络内部，slave 容器始终使用 3306
       jdbc-url: jdbc:mysql://mysql-slave:3306/seckill_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
       username: root
       password: root123456
@@ -44,6 +43,12 @@ spring:
           max-idle: 10
           min-idle: 5
           max-wait: 5000ms
+
+  # ✅ 正确配置：ElasticSearch 直接在 spring 下，不是在 spring.data 下
+  elasticsearch:
+    uris: http://elasticsearch:9200
+    connection-timeout: 5s
+    socket-timeout: 60s
 
 mybatis-plus:
   configuration:
