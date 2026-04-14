@@ -9,27 +9,6 @@ spring:
     virtual:
       enabled: true
 
-  datasource:
-    master:
-      driver-class-name: com.mysql.cj.jdbc.Driver
-      jdbc-url: jdbc:mysql://mysql-master:3306/seckill_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
-      username: root
-      password: root123456
-      hikari:
-        maximum-pool-size: 10
-        minimum-idle: 5
-        connection-timeout: 30000
-    slave:
-      driver-class-name: com.mysql.cj.jdbc.Driver
-      jdbc-url: jdbc:mysql://mysql-slave:3306/seckill_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
-      username: root
-      password: root123456
-      hikari:
-        maximum-pool-size: 10
-        minimum-idle: 5
-        connection-timeout: 30000
-        read-only: true
-
   data:
     redis:
       host: redis
@@ -59,6 +38,74 @@ spring:
       enable-auto-commit: false
     listener:
       ack-mode: manual_immediate
+
+  shardingsphere:
+    props:
+      sql-show: true
+    datasource:
+      names: base,ds0,ds1,ds2,ds3
+      base:
+        type: com.zaxxer.hikari.HikariDataSource
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        jdbc-url: ${ORDER_BASE_DB_URL:jdbc:mysql://mysql-master:3306/seckill_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
+        username: ${ORDER_BASE_DB_USERNAME:root}
+        password: ${ORDER_BASE_DB_PASSWORD:root123456}
+      ds0:
+        type: com.zaxxer.hikari.HikariDataSource
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        jdbc-url: ${ORDER_DS0_URL:jdbc:mysql://mysql-master:3306/seckill_order_0?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
+        username: ${ORDER_DS0_USERNAME:root}
+        password: ${ORDER_DS0_PASSWORD:root123456}
+      ds1:
+        type: com.zaxxer.hikari.HikariDataSource
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        jdbc-url: ${ORDER_DS1_URL:jdbc:mysql://mysql-master:3306/seckill_order_1?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
+        username: ${ORDER_DS1_USERNAME:root}
+        password: ${ORDER_DS1_PASSWORD:root123456}
+      ds2:
+        type: com.zaxxer.hikari.HikariDataSource
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        jdbc-url: ${ORDER_DS2_URL:jdbc:mysql://mysql-master:3306/seckill_order_2?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
+        username: ${ORDER_DS2_USERNAME:root}
+        password: ${ORDER_DS2_PASSWORD:root123456}
+      ds3:
+        type: com.zaxxer.hikari.HikariDataSource
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        jdbc-url: ${ORDER_DS3_URL:jdbc:mysql://mysql-master:3306/seckill_order_3?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
+        username: ${ORDER_DS3_USERNAME:root}
+        password: ${ORDER_DS3_PASSWORD:root123456}
+
+    rules:
+      sharding:
+        tables:
+          orders:
+            actual-data-nodes: ds$->{0..3}.orders_$->{0..7}
+            database-strategy:
+              standard:
+                sharding-column: user_id
+                sharding-algorithm-name: user-db-hash-mod
+            table-strategy:
+              standard:
+                sharding-column: id
+                sharding-algorithm-name: order-table-inline
+            key-generate-strategy:
+              column: id
+              key-generator-name: order-snowflake
+        sharding-algorithms:
+          user-db-hash-mod:
+            type: HASH_MOD
+            props:
+              sharding-count: 4
+          order-table-inline:
+            type: INLINE
+            props:
+              algorithm-expression: orders_$->{id % 8}
+        key-generators:
+          order-snowflake:
+            type: SNOWFLAKE
+      single:
+        tables:
+          - base.seckill_product
 
 mybatis-plus:
   configuration:

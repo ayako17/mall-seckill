@@ -24,5 +24,5 @@ public interface OrderService {
     /**
      * 查询订单详情
      */
-    OrderResponse getOrderDetail(Long orderId);
+    OrderResponse getOrderDetail(Long orderId, Long userId);
 }

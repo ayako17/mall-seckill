@@ -11,40 +11,33 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/order")
 public class OrderController {
-    
+
     private final OrderService orderService;
     private final JwtUtil jwtUtil;
-    
+
     public OrderController(OrderService orderService, JwtUtil jwtUtil) {
         this.orderService = orderService;
         this.jwtUtil = jwtUtil;
     }
-    
-    /**
-     * 秒杀下单
-     */
+
     @PostMapping("/seckill")
     public ApiResponse<String> createSeckillOrder(
             @RequestHeader("Authorization") String token,
             @RequestBody SeckillOrderRequest request) {
         try {
-            // 解析 token 获取用户ID
             String actualToken = token.replace("Bearer ", "");
             Long userId = jwtUtil.getUserIdFromToken(actualToken);
             if (userId == null) {
                 return ApiResponse.error(401, "未登录或登录已过期");
             }
-            
+
             String orderNo = orderService.createSeckillOrder(userId, request);
             return ApiResponse.success("下单成功，排队中", orderNo);
         } catch (Exception e) {
             return ApiResponse.error(e.getMessage());
         }
     }
-    
-    /**
-     * 查询订单结果
-     */
+
     @GetMapping("/result/{orderNo}")
     public ApiResponse<OrderResponse> getOrderResult(@PathVariable String orderNo) {
         try {
@@ -54,10 +47,7 @@ public class OrderController {
             return ApiResponse.error(e.getMessage());
         }
     }
-    
-    /**
-     * 查询用户订单列表
-     */
+
     @GetMapping("/list")
     public ApiResponse<Page<OrderResponse>> getUserOrders(
             @RequestHeader("Authorization") String token,
@@ -69,21 +59,25 @@ public class OrderController {
             if (userId == null) {
                 return ApiResponse.error(401, "未登录或登录已过期");
             }
-            
+
             Page<OrderResponse> page = orderService.getUserOrders(userId, pageNum, pageSize);
             return ApiResponse.success(page);
         } catch (Exception e) {
             return ApiResponse.error(e.getMessage());
         }
     }
-    
-    /**
-     * 查询订单详情
-     */
+
     @GetMapping("/{orderId}")
-    public ApiResponse<OrderResponse> getOrderDetail(@PathVariable Long orderId) {
+    public ApiResponse<OrderResponse> getOrderDetail(
+            @PathVariable Long orderId,
+            @RequestHeader(value = "Authorization", required = false) String token) {
         try {
-            OrderResponse order = orderService.getOrderDetail(orderId);
+            Long userId = null;
+            if (token != null && !token.isBlank()) {
+                String actualToken = token.replace("Bearer ", "");
+                userId = jwtUtil.getUserIdFromToken(actualToken);
+            }
+            OrderResponse order = orderService.getOrderDetail(orderId, userId);
             return ApiResponse.success(order);
         } catch (Exception e) {
             return ApiResponse.error(e.getMessage());

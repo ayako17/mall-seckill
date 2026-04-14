@@ -146,12 +146,21 @@ services:
       kafka:
         condition: service_healthy
     environment:
-      SPRING_DATASOURCE_MASTER_URL: jdbc:mysql://mysql-master:3306/seckill_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
-      SPRING_DATASOURCE_MASTER_USERNAME: root
-      SPRING_DATASOURCE_MASTER_PASSWORD: root123456
-      SPRING_DATASOURCE_SLAVE_URL: jdbc:mysql://mysql-slave:3306/seckill_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
-      SPRING_DATASOURCE_SLAVE_USERNAME: root
-      SPRING_DATASOURCE_SLAVE_PASSWORD: root123456
+      ORDER_BASE_DB_URL: jdbc:mysql://mysql-master:3306/seckill_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+      ORDER_BASE_DB_USERNAME: root
+      ORDER_BASE_DB_PASSWORD: root123456
+      ORDER_DS0_URL: jdbc:mysql://mysql-master:3306/seckill_order_0?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+      ORDER_DS0_USERNAME: root
+      ORDER_DS0_PASSWORD: root123456
+      ORDER_DS1_URL: jdbc:mysql://mysql-master:3306/seckill_order_1?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+      ORDER_DS1_USERNAME: root
+      ORDER_DS1_PASSWORD: root123456
+      ORDER_DS2_URL: jdbc:mysql://mysql-master:3306/seckill_order_2?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+      ORDER_DS2_USERNAME: root
+      ORDER_DS2_PASSWORD: root123456
+      ORDER_DS3_URL: jdbc:mysql://mysql-master:3306/seckill_order_3?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+      ORDER_DS3_USERNAME: root
+      ORDER_DS3_PASSWORD: root123456
       SPRING_REDIS_HOST: redis
       SPRING_REDIS_PORT: 6379
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
