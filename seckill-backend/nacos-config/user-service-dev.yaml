@@ -1,0 +1,65 @@
+﻿# Data ID: user-service-dev.yaml
+server:
+  port: 8080
+  error:
+    include-message: always
+    include-binding-errors: always
+
+spring:
+  threads:
+    virtual:
+      enabled: true
+  shardingsphere:
+    datasource:
+      names: master,slave
+      master:
+        type: com.zaxxer.hikari.HikariDataSource
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        jdbc-url: ${SPRING_DATASOURCE_MASTER_URL:jdbc:mysql://mysql-master:3306/seckill_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
+        username: ${SPRING_DATASOURCE_MASTER_USERNAME:root}
+        password: ${SPRING_DATASOURCE_MASTER_PASSWORD:root123456}
+        hikari:
+          maximum-pool-size: 20
+      slave:
+        type: com.zaxxer.hikari.HikariDataSource
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        jdbc-url: ${SPRING_DATASOURCE_SLAVE_URL:jdbc:mysql://mysql-slave:3306/seckill_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
+        username: ${SPRING_DATASOURCE_SLAVE_USERNAME:root}
+        password: ${SPRING_DATASOURCE_SLAVE_PASSWORD:root123456}
+        hikari:
+          maximum-pool-size: 50
+    rules:
+      readwrite-splitting:
+        data-sources:
+          myds:
+            type: Static
+            props:
+              write-data-source-name: master
+              read-data-source-names: slave
+            load-balancer-name: round-robin
+        load-balancers:
+          round-robin:
+            type: ROUND_ROBIN
+    props:
+      sql-show: true
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+
+jwt:
+  secret: seckillSecretKey2026
+  expiration: 86400
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+
+logging:
+  level:
+    com.seckill: DEBUG
+    org.springframework.jdbc: DEBUG
+    org.springframework.transaction: DEBUG
+    org.apache.shardingsphere: INFO

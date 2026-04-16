@@ -13,7 +13,7 @@ import java.util.Date;
 public class JwtUtil {
     
     private static final String SECRET_KEY = "seckill-secret-key-for-jwt-token-generation-2024";
-    private static final long EXPIRATION_TIME = 86400000; // 24小时
+    private static final long EXPIRATION_TIME = 86400000; // 24灏忔椂
     
     private final SecretKey key;
     
@@ -46,3 +46,5 @@ public class JwtUtil {
         }
     }
 }
+
+

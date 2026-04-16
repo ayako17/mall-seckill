@@ -38,3 +38,5 @@ public class SeckillProduct {
     
     private Integer version;
 }
+
+

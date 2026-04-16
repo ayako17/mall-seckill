@@ -30,9 +30,9 @@ public class StockWarmUpTask implements CommandLineRunner {
     
     @Override
     public void run(String... args) {
-        log.info("开始预热秒杀库存到 Redis...");
+        log.info("寮€濮嬮鐑鏉€搴撳瓨鍒?Redis...");
         
-        // 查询所有进行中(status=1)以及即将开始但时间已到(status=0, start_time<=now)的秒杀活动
+        // 鏌ヨ鎵€鏈夎繘琛屼腑(status=1)浠ュ強鍗冲皢寮€濮嬩絾鏃堕棿宸插埌(status=0, start_time<=now)鐨勭鏉€娲诲姩
         LocalDateTime now = LocalDateTime.now();
         List<SeckillProduct> seckillProducts = seckillProductMapper.selectList(
             new LambdaQueryWrapper<SeckillProduct>()
@@ -47,9 +47,11 @@ public class StockWarmUpTask implements CommandLineRunner {
         for (SeckillProduct product : seckillProducts) {
             String stockKey = SECKILL_STOCK_KEY + product.getId();
             redisTemplate.opsForValue().set(stockKey, String.valueOf(product.getAvailableStock()));
-            log.info("预热库存: seckillId={}, stock={}, status={}", product.getId(), product.getAvailableStock(), product.getStatus());
+            log.info("棰勭儹搴撳瓨: seckillId={}, stock={}, status={}", product.getId(), product.getAvailableStock(), product.getStatus());
         }
         
-        log.info("库存预热完成，共预热 {} 个秒杀活动", seckillProducts.size());
+        log.info("搴撳瓨棰勭儹瀹屾垚锛屽叡棰勭儹 {} 涓鏉€娲诲姩", seckillProducts.size());
     }
 }
+
+

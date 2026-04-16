@@ -10,7 +10,7 @@ import org.apache.ibatis.annotations.Update;
 public interface SeckillProductMapper extends BaseMapper<SeckillProduct> {
     
     /**
-     * 乐观锁扣减库存（带 version 校验，保留以便兼容）
+     * 涔愯閿佹墸鍑忓簱瀛橈紙甯?version 鏍￠獙锛屼繚鐣欎互渚垮吋瀹癸級
      */
     @Update("UPDATE seckill_product SET available_stock = available_stock - #{quantity}, " +
             "version = version + 1 WHERE id = #{seckillId} AND available_stock >= #{quantity} " +
@@ -20,11 +20,13 @@ public interface SeckillProductMapper extends BaseMapper<SeckillProduct> {
                     @Param("version") Integer version);
 
     /**
-     * 直接扣减库存（不校验 version）
-     * Redis 已作为第一道原子扣减门禁，此处只需同步 DB，无需乐观锁重试。
+     * 鐩存帴鎵ｅ噺搴撳瓨锛堜笉鏍￠獙 version锛?
+     * Redis 宸蹭綔涓虹涓€閬撳師瀛愭墸鍑忛棬绂侊紝姝ゅ鍙渶鍚屾 DB锛屾棤闇€涔愯閿侀噸璇曘€?
      */
     @Update("UPDATE seckill_product SET available_stock = available_stock - #{quantity}, " +
             "version = version + 1 WHERE id = #{seckillId} AND available_stock >= #{quantity}")
     int deductStockDirect(@Param("seckillId") Long seckillId,
                           @Param("quantity") Integer quantity);
 }
+
+

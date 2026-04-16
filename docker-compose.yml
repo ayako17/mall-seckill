@@ -1,7 +1,6 @@
 version: '3.8'
 
 services:
-  # ==================== MySQL 主库 ====================
   mysql-master:
     image: mysql:8.0
     container_name: mysql-master
@@ -30,7 +29,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # ==================== MySQL 从库 ====================
   mysql-slave:
     image: mysql:8.0
     container_name: mysql-slave
@@ -60,7 +58,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # ==================== Redis ====================
   redis:
     image: redis:7-alpine
     container_name: seckill-redis
@@ -74,16 +71,15 @@ services:
       timeout: 5s
       retries: 5
 
-  # ==================== ElasticSearch ====================
   elasticsearch:
-    build: 
+    build:
       context: ./elasticsearch
       dockerfile: Dockerfile
     container_name: seckill-elasticsearch
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
     ports:
       - "9200:9200"
       - "9300:9300"
@@ -91,14 +87,7 @@ services:
       - es-data:/usr/share/elasticsearch/data
     networks:
       - seckill-net
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 30s
 
-  # ==================== Kafka ====================
   kafka:
     image: apache/kafka:3.7.1
     container_name: seckill-kafka
@@ -121,14 +110,160 @@ services:
       - kafka-data:/var/lib/kafka/data
     networks:
       - seckill-net
-    healthcheck:
-      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list || exit 1"]
-      interval: 15s
-      timeout: 10s
-      retries: 10
-      start_period: 30s
 
-  # ==================== 订单服务 ====================
+  nacos:
+    image: nacos/nacos-server:v2.2.3
+    container_name: nacos
+    environment:
+      MODE: standalone
+      NACOS_AUTH_ENABLE: "false"
+    ports:
+      - "8848:8848"
+      - "9848:9848"
+    networks:
+      - seckill-net
+
+  sentinel-dashboard:
+    image: bladex/sentinel-dashboard:1.8.6
+    container_name: sentinel-dashboard
+    ports:
+      - "8858:8858"
+    environment:
+      - JAVA_OPTS=-Dserver.port=8858
+    networks:
+      - seckill-net
+
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+    networks:
+      - seckill-net
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.57
+    container_name: jaeger
+    ports:
+      - "16686:16686"
+      - "4317:4317"
+      - "4318:4318"
+    networks:
+      - seckill-net
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.105.0
+    container_name: otel-collector
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./observability/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+    ports:
+      - "4319:4317"
+    depends_on:
+      - jaeger
+    networks:
+      - seckill-net
+
+  user-service-1:
+    build:
+      context: ./seckill-backend
+      dockerfile: user-service/Dockerfile
+    container_name: user-service-1
+    ports:
+      - "8081:8080"
+    environment:
+      NACOS_SERVER_ADDR: nacos:8848
+      SENTINEL_DASHBOARD: sentinel-dashboard:8858
+      JAVA_TOOL_OPTIONS: "-javaagent:/otel/opentelemetry-javaagent.jar"
+      OTEL_SERVICE_NAME: user-service
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: none
+      OTEL_LOGS_EXPORTER: none
+      SPRING_DATASOURCE_MASTER_URL: jdbc:mysql://mysql-master:3306/seckill_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_MASTER_USERNAME: root
+      SPRING_DATASOURCE_MASTER_PASSWORD: root123456
+      SPRING_DATASOURCE_SLAVE_URL: jdbc:mysql://mysql-slave:3306/seckill_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_SLAVE_USERNAME: root
+      SPRING_DATASOURCE_SLAVE_PASSWORD: root123456
+    depends_on:
+      - nacos
+      - redis
+      - kafka
+      - otel-collector
+    volumes:
+      - ./observability/opentelemetry-javaagent.jar:/otel/opentelemetry-javaagent.jar:ro
+    networks:
+      - seckill-net
+
+  user-service-2:
+    build:
+      context: ./seckill-backend
+      dockerfile: user-service/Dockerfile
+    container_name: user-service-2
+    ports:
+      - "8082:8080"
+    environment:
+      NACOS_SERVER_ADDR: nacos:8848
+      SENTINEL_DASHBOARD: sentinel-dashboard:8858
+      JAVA_TOOL_OPTIONS: "-javaagent:/otel/opentelemetry-javaagent.jar"
+      OTEL_SERVICE_NAME: user-service
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: none
+      OTEL_LOGS_EXPORTER: none
+      SPRING_DATASOURCE_MASTER_URL: jdbc:mysql://mysql-master:3306/seckill_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_MASTER_USERNAME: root
+      SPRING_DATASOURCE_MASTER_PASSWORD: root123456
+      SPRING_DATASOURCE_SLAVE_URL: jdbc:mysql://mysql-slave:3306/seckill_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_SLAVE_USERNAME: root
+      SPRING_DATASOURCE_SLAVE_PASSWORD: root123456
+    depends_on:
+      - nacos
+      - redis
+      - kafka
+      - otel-collector
+    volumes:
+      - ./observability/opentelemetry-javaagent.jar:/otel/opentelemetry-javaagent.jar:ro
+    networks:
+      - seckill-net
+
+  product-service:
+    build:
+      context: ./seckill-backend
+      dockerfile: product-service/Dockerfile
+    container_name: product-service
+    ports:
+      - "8083:8081"
+    environment:
+      NACOS_SERVER_ADDR: nacos:8848
+      SENTINEL_DASHBOARD: sentinel-dashboard:8858
+      JAVA_TOOL_OPTIONS: "-javaagent:/otel/opentelemetry-javaagent.jar"
+      OTEL_SERVICE_NAME: product-service
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: none
+      OTEL_LOGS_EXPORTER: none
+    depends_on:
+      - nacos
+      - redis
+      - kafka
+      - elasticsearch
+      - otel-collector
+    volumes:
+      - ./observability/opentelemetry-javaagent.jar:/otel/opentelemetry-javaagent.jar:ro
+    networks:
+      - seckill-net
+
   order-service:
     build:
       context: ./seckill-backend
@@ -136,16 +271,16 @@ services:
     container_name: order-service
     ports:
       - "8084:8084"
-    depends_on:
-      mysql-master:
-        condition: service_healthy
-      mysql-slave:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
     environment:
+      NACOS_SERVER_ADDR: nacos:8848
+      SENTINEL_DASHBOARD: sentinel-dashboard:8858
+      JAVA_TOOL_OPTIONS: "-javaagent:/otel/opentelemetry-javaagent.jar"
+      OTEL_SERVICE_NAME: order-service
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: none
+      OTEL_LOGS_EXPORTER: none
       ORDER_BASE_DB_URL: jdbc:mysql://mysql-master:3306/seckill_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
       ORDER_BASE_DB_USERNAME: root
       ORDER_BASE_DB_PASSWORD: root123456
@@ -161,109 +296,76 @@ services:
       ORDER_DS3_URL: jdbc:mysql://mysql-master:3306/seckill_order_3?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
       ORDER_DS3_USERNAME: root
       ORDER_DS3_PASSWORD: root123456
-      SPRING_REDIS_HOST: redis
-      SPRING_REDIS_PORT: 6379
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      - nacos
+      - redis
+      - kafka
+      - otel-collector
+    volumes:
+      - ./observability/opentelemetry-javaagent.jar:/otel/opentelemetry-javaagent.jar:ro
     networks:
       - seckill-net
-    restart: on-failure
 
-  # ==================== 用户服务（实例1）====================
-  user-service-1:
+  inventory-service:
     build:
       context: ./seckill-backend
-      dockerfile: user-service/Dockerfile
-    container_name: user-service-1
+      dockerfile: inventory-service/Dockerfile
+    container_name: inventory-service
     ports:
-      - "8081:8080"
-    depends_on:
-      mysql-master:
-        condition: service_healthy
-      mysql-slave:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      elasticsearch:
-        condition: service_healthy
+      - "8085:8085"
     environment:
-      # 主库（写）
-      SPRING_DATASOURCE_MASTER_URL: jdbc:mysql://mysql-master:3306/seckill_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
-      SPRING_DATASOURCE_MASTER_USERNAME: root
-      SPRING_DATASOURCE_MASTER_PASSWORD: root123456
-      # 从库（读）
-      # ✅ Fix in user-service-1, user-service-2, and product-service:
-      SPRING_DATASOURCE_SLAVE_URL: jdbc:mysql://mysql-slave:3306/seckill_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
-      SPRING_DATASOURCE_SLAVE_PASSWORD: root123456
-      SPRING_DATASOURCE_SLAVE_USERNAME: root
-      SPRING_REDIS_HOST: redis
-      SPRING_REDIS_PORT: 6379
-      JWT_SECRET: seckillSecretKey2026
+      NACOS_SERVER_ADDR: nacos:8848
+      SENTINEL_DASHBOARD: sentinel-dashboard:8858
+      JAVA_TOOL_OPTIONS: "-javaagent:/otel/opentelemetry-javaagent.jar"
+      OTEL_SERVICE_NAME: inventory-service
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: none
+      OTEL_LOGS_EXPORTER: none
+      INVENTORY_DB_URL: jdbc:mysql://mysql-master:3306/seckill_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+      INVENTORY_DB_USERNAME: root
+      INVENTORY_DB_PASSWORD: root123456
+    depends_on:
+      - nacos
+      - redis
+      - kafka
+      - otel-collector
+    volumes:
+      - ./observability/opentelemetry-javaagent.jar:/otel/opentelemetry-javaagent.jar:ro
     networks:
       - seckill-net
 
-  # 用户服务实例2（配置相同，略）
-  user-service-2:
-    # ... 同 user-service-1
+  gateway-service:
     build:
       context: ./seckill-backend
-      dockerfile: user-service/Dockerfile
-    container_name: user-service-2
+      dockerfile: gateway-service/Dockerfile
+    container_name: gateway-service
     ports:
-      - "8082:8080"
-    depends_on:
-      mysql-master:
-        condition: service_healthy
-      mysql-slave:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - "8088:8088"
     environment:
-      SPRING_DATASOURCE_MASTER_URL: jdbc:mysql://mysql-master:3306/seckill_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
-      SPRING_DATASOURCE_MASTER_USERNAME: root
-      SPRING_DATASOURCE_MASTER_PASSWORD: root123456
-      # ✅ Fix in user-service-1, user-service-2, and product-service:
-      SPRING_DATASOURCE_SLAVE_URL: jdbc:mysql://mysql-slave:3306/seckill_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
-      SPRING_DATASOURCE_SLAVE_USERNAME: root
-      SPRING_DATASOURCE_SLAVE_PASSWORD: root123456
-      SPRING_REDIS_HOST: redis
-      SPRING_REDIS_PORT: 6379
-      JWT_SECRET: seckillSecretKey2026
+      NACOS_SERVER_ADDR: nacos:8848
+      SENTINEL_DASHBOARD: sentinel-dashboard:8858
+      JAVA_TOOL_OPTIONS: "-javaagent:/otel/opentelemetry-javaagent.jar"
+      OTEL_SERVICE_NAME: gateway-service
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: none
+      OTEL_LOGS_EXPORTER: none
+    depends_on:
+      - nacos
+      - user-service-1
+      - user-service-2
+      - product-service
+      - order-service
+      - inventory-service
+      - otel-collector
+    volumes:
+      - ./observability/opentelemetry-javaagent.jar:/otel/opentelemetry-javaagent.jar:ro
     networks:
       - seckill-net
 
-  # 商品服务（配置相同）
-  product-service:
-    restart: on-failure
-    # ... 同 user-service-1
-    build:
-      context: ./seckill-backend
-      dockerfile: product-service/Dockerfile
-    container_name: product-service
-    ports:
-      - "8083:8081"
-    depends_on:
-      mysql-master:
-        condition: service_healthy
-      mysql-slave:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      elasticsearch:
-        condition: service_healthy
-    environment:
-      SPRING_DATASOURCE_MASTER_URL: jdbc:mysql://mysql-master:3306/seckill_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
-      SPRING_DATASOURCE_MASTER_USERNAME: root
-      SPRING_DATASOURCE_MASTER_PASSWORD: root123456
-      # ✅ Fix in user-service-1, user-service-2, and product-service:
-      SPRING_DATASOURCE_SLAVE_URL: jdbc:mysql://mysql-slave:3306/seckill_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
-      SPRING_DATASOURCE_SLAVE_USERNAME: root
-      SPRING_DATASOURCE_SLAVE_PASSWORD: root123456
-      SPRING_REDIS_HOST: redis
-      SPRING_REDIS_PORT: 6379
-    networks:
-      - seckill-net
-
-  # ==================== Nginx ====================
   nginx:
     image: nginx:alpine
     container_name: seckill-nginx
@@ -273,13 +375,10 @@ services:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx-html:/usr/share/nginx/html:ro
     depends_on:
-      - user-service-1
-      - user-service-2
-      - product-service
-      - order-service
+      - gateway-service
     networks:
       - seckill-net
-    
+
 networks:
   seckill-net:
     driver: bridge
@@ -289,3 +388,4 @@ volumes:
   mysql-slave-data:
   es-data:
   kafka-data:
+  prometheus-data:

@@ -1,0 +1,11 @@
+[
+  {
+    "resource": "inventoryCheckApi",
+    "grade": 0,
+    "count": 50,
+    "timeWindow": 10,
+    "minRequestAmount": 10,
+    "statIntervalMs": 10000,
+    "slowRatioThreshold": 1.0
+  }
+]

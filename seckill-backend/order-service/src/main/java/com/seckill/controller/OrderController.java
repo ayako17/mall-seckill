@@ -3,13 +3,14 @@ package com.seckill.controller;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.seckill.dto.OrderResponse;
 import com.seckill.dto.SeckillOrderRequest;
+import com.seckill.dto.payment.PaymentCallbackRequest;
 import com.seckill.service.OrderService;
 import com.seckill.util.JwtUtil;
 import com.seckill.vo.ApiResponse;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/order")
+@RequestMapping("/api/orders")
 public class OrderController {
 
     private final OrderService orderService;
@@ -33,6 +34,16 @@ public class OrderController {
 
             String orderNo = orderService.createSeckillOrder(userId, request);
             return ApiResponse.success("下单成功，排队中", orderNo);
+        } catch (Exception e) {
+            return ApiResponse.error(e.getMessage());
+        }
+    }
+
+    @PostMapping("/pay/callback")
+    public ApiResponse<String> paymentCallback(@RequestBody PaymentCallbackRequest request) {
+        try {
+            orderService.handlePaymentCallback(request);
+            return ApiResponse.success("回调处理成功");
         } catch (Exception e) {
             return ApiResponse.error(e.getMessage());
         }
@@ -84,3 +95,5 @@ public class OrderController {
         }
     }
 }
+
+

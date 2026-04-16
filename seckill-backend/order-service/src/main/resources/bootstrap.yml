@@ -1,0 +1,25 @@
+﻿spring:
+  application:
+    name: order-service
+  profiles:
+    active: dev
+  cloud:
+    nacos:
+      server-addr: ${NACOS_SERVER_ADDR:nacos:8848}
+      discovery:
+        server-addr: ${spring.cloud.nacos.server-addr}
+        namespace: ${NACOS_NAMESPACE:public}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
+      config:
+        server-addr: ${spring.cloud.nacos.server-addr}
+        namespace: ${NACOS_NAMESPACE:public}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
+        file-extension: yaml
+        refresh-enabled: true
+        extension-configs:
+          - data-id: common-infra.yaml
+            group: DEFAULT_GROUP
+            refresh: true
+          - data-id: order-service-dev.yaml
+            group: DEFAULT_GROUP
+            refresh: true

@@ -1,0 +1,11 @@
+[
+  {
+    "resource": "orderCreateSeckill",
+    "count": 0.5,
+    "grade": 1,
+    "timeWindow": 10,
+    "minRequestAmount": 20,
+    "statIntervalMs": 10000,
+    "slowRatioThreshold": 1.0
+  }
+]

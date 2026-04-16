@@ -1,0 +1,33 @@
+# Reserved for standalone rule maintenance if needed.
+# Runtime configuration is loaded from application.yml.
+
+tables:
+  orders:
+    actual-data-nodes: ds$->{0..3}.orders_$->{0..7}
+    database-strategy:
+      standard:
+        sharding-column: user_id
+        sharding-algorithm-name: user-db-hash-mod
+    table-strategy:
+      standard:
+        sharding-column: id
+        sharding-algorithm-name: order-table-inline
+    key-generate-strategy:
+      column: id
+      key-generator-name: order-snowflake
+
+sharding-algorithms:
+  user-db-hash-mod:
+    type: HASH_MOD
+    props:
+      sharding-count: 4
+  order-table-inline:
+    type: INLINE
+    props:
+      algorithm-expression: orders_$->{id % 8}
+
+key-generators:
+  order-snowflake:
+    type: SNOWFLAKE
+
+

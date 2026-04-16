@@ -1,0 +1,59 @@
+﻿# Data ID: product-service-dev.yaml
+server:
+  port: 8081
+
+spring:
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    master:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      jdbc-url: jdbc:mysql://mysql-master:3306/seckill_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+      username: root
+      password: root123456
+      hikari:
+        maximum-pool-size: 10
+        minimum-idle: 5
+        connection-timeout: 30000
+    slave:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      jdbc-url: jdbc:mysql://mysql-slave:3306/seckill_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+      username: root
+      password: root123456
+      hikari:
+        maximum-pool-size: 20
+        minimum-idle: 10
+        connection-timeout: 30000
+        read-only: true
+  elasticsearch:
+    uris: http://elasticsearch:9200
+    connection-timeout: 5s
+    socket-timeout: 60s
+
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    map-underscore-to-camel-case: true
+    cache-enabled: false
+  global-config:
+    db-config:
+      id-type: ASSIGN_ID
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+  mapper-locations: classpath*:/mapper/**/*.xml
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+
+logging:
+  level:
+    com.seckill: DEBUG
+    org.springframework.web: INFO
+    com.baomidou.mybatisplus: DEBUG
+  pattern:
+    console: '%d{yyyy-MM-dd HH:mm:ss} - %msg%n'

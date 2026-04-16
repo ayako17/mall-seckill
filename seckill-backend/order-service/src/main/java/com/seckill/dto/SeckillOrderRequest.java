@@ -9,3 +9,5 @@ public class SeckillOrderRequest {
     
     private Integer quantity;
 }
+
+

@@ -16,6 +16,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <spring-boot.version>3.2.4</spring-boot.version>
         <spring-cloud.version>2023.0.1</spring-cloud.version>
+        <spring-cloud-alibaba.version>2023.0.1.0</spring-cloud-alibaba.version>
         <mybatis-plus.version>3.5.5</mybatis-plus.version>
         <shardingsphere.version>5.4.1</shardingsphere.version>
         <fastjson.version>2.0.52</fastjson.version>
@@ -24,7 +25,7 @@
 
     <dependencyManagement>
         <dependencies>
-            <!-- Spring Boot 依赖包 (只保留一个) -->
+            <!-- Spring Boot 渚濊禆鍖?(鍙繚鐣欎竴涓? -->
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
@@ -33,7 +34,7 @@
                 <scope>import</scope>
             </dependency>
 
-            <!-- Spring Cloud 依赖包 -->
+            <!-- Spring Cloud 渚濊禆鍖?-->
             <dependency>
                 <groupId>org.springframework.cloud</groupId>
                 <artifactId>spring-cloud-dependencies</artifactId>
@@ -42,14 +43,27 @@
                 <scope>import</scope>
             </dependency>
 
+            <dependency>
+                <groupId>com.alibaba.cloud</groupId>
+                <artifactId>spring-cloud-alibaba-dependencies</artifactId>
+                <version>${spring-cloud-alibaba.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
             <!-- MyBatis-Plus -->
+            <dependency>
+                <groupId>com.baomidou</groupId>
+                <artifactId>mybatis-plus-boot-starter</artifactId>
+                <version>${mybatis-plus.version}</version>
+            </dependency>
             <dependency>
                 <groupId>com.baomidou</groupId>
                 <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
                 <version>${mybatis-plus.version}</version>
             </dependency>
 
-            <!-- Sharding-JDBC 读写分离 -->
+            <!-- Sharding-JDBC  -->
             <dependency>
                 <groupId>org.apache.shardingsphere</groupId>
                 <artifactId>shardingsphere-jdbc-core</artifactId>
@@ -70,7 +84,7 @@
                 <version>${fastjson.version}</version>
             </dependency>
 
-            <!-- Guava 布隆过滤器 -->
+            <!-- Guava -->
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
@@ -123,10 +137,10 @@
         <module>user-service</module>
         <module>product-service</module>
         <module>order-service</module>
-        <!-- order-service 和 inventory-service 如果还没有创建，先注释掉 -->
-        <!--
-        <module>order-service</module>
         <module>inventory-service</module>
-        -->
+        <module>gateway-service</module>
     </modules>
 </project>
+
+
+

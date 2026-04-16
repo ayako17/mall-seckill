@@ -1,0 +1,52 @@
+server:
+  port: 8088
+
+spring:
+  main:
+    web-application-type: reactive
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+      routes:
+        - id: user-service-route
+          uri: lb://user-service
+          predicates:
+            - Path=/api/users/**
+        - id: product-service-route
+          uri: lb://product-service
+          predicates:
+            - Path=/api/products/**
+        - id: order-service-route
+          uri: lb://order-service
+          predicates:
+            - Path=/api/orders/**
+        - id: inventory-service-route
+          uri: lb://inventory-service
+          predicates:
+            - Path=/api/inventory/**
+    sentinel:
+      transport:
+        dashboard: ${SENTINEL_DASHBOARD:sentinel-dashboard:8858}
+      datasource:
+        gw-flow-nacos:
+          nacos:
+            server-addr: ${NACOS_SERVER_ADDR:nacos:8848}
+            namespace: ${NACOS_NAMESPACE:public}
+            group-id: DEFAULT_GROUP
+            data-id: gateway-service-gw-flow-rules.json
+            data-type: json
+            rule-type: gw-flow
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,gateway
+
+logging:
+  level:
+    org.springframework.cloud.gateway: INFO
+    com.alibaba.csp.sentinel: INFO

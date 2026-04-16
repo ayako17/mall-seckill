@@ -1,0 +1,14 @@
+[
+  {
+    "resource": "order-service-route",
+    "resourceMode": 0,
+    "grade": 1,
+    "count": 10,
+    "intervalSec": 1,
+    "burst": 0,
+    "controlBehavior": 0,
+    "paramItem": {
+      "parseStrategy": 0
+    }
+  }
+]
